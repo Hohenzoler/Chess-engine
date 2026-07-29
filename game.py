@@ -1,5 +1,6 @@
 import chess
 import pyray as rl
+import TEXTURES
 
 class Chess:
     def __init__(self):
@@ -11,6 +12,11 @@ class Chess:
 
         rl.init_window(self.w, self.h, 'Chess')
         rl.set_target_fps(60)
+
+
+        self.board = chess.Board()
+
+        self.textures = TEXTURES.load_textures()
 
         self.objects = []
 
@@ -62,12 +68,17 @@ class Chessboard(Display):
         self.black_tile_color = (85, 52, 43, 255)
         self.white_tile_color = (209, 175, 132, 255)
 
+        self.board = self.gui_object.board
+        self.textures = self.gui_object.textures
+
 
         self.tile_w = self.width // 8
         self.tile_h = self.height // 8
 
+        self.scale = self.tile_w/self.textures['P'].width
+
         self.font = rl.load_font('assets/fonts/MaidenOrange-Regular.ttf')
-        self.font_size = self.tile_h // 3
+        self.font_size = self.tile_h // 4
     def render(self):
         for y in range(8):
             for x in range(8):
@@ -75,6 +86,7 @@ class Chessboard(Display):
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h, self.white_tile_color)
                 else:
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h, self.black_tile_color)
+
 
                 if x == 0:
                     if y % 2 == 1:
@@ -91,6 +103,12 @@ class Chessboard(Display):
                         color = self.black_tile_color
 
                     rl.draw_text_ex(self.font, f'{chr(x + 97)}', (self.x + x * self.tile_w + self.tile_w * (15/16) - self.font_size//2, self.y + y * self.tile_h + self.tile_h//16 + self.tile_h * (15/16) - self.font_size//1.2), self.font_size,0, color)
+
+                square = chess.square(7 - x, 7 - y)
+                piece = self.board.piece_at(square)
+                if piece != None:
+                    rl.draw_texture_ex(self.textures[piece.symbol()],
+                                       (self.x + x * self.tile_w, self.y + y * self.tile_h), 0, self.scale, rl.WHITE)
 
 
 
