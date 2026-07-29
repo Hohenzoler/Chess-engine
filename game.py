@@ -82,6 +82,7 @@ class Chessboard(Display):
     def render(self):
         for y in range(8):
             for x in range(8):
+                y = 7-y
                 if (x+y) % 2 == 0:
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h, self.white_tile_color)
                 else:
@@ -104,7 +105,7 @@ class Chessboard(Display):
 
                     rl.draw_text_ex(self.font, f'{chr(x + 97)}', (self.x + x * self.tile_w + self.tile_w * (15/16) - self.font_size//2, self.y + y * self.tile_h + self.tile_h//16 + self.tile_h * (15/16) - self.font_size//1.2), self.font_size,0, color)
 
-                square = chess.square(7 - x, 7 - y)
+                square = chess.square(x, y)
                 piece = self.board.piece_at(square)
                 if piece != None:
                     rl.draw_texture_ex(self.textures[piece.symbol()],
