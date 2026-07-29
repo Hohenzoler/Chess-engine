@@ -1,5 +1,6 @@
 import chess
 import pyray as rl
+
 import TEXTURES
 
 class Chess:
@@ -7,7 +8,7 @@ class Chess:
         self.w = 800
         self.h = 600
 
-        self.board_w = 600
+        self.board_w = self.h
         self.panel_w = self.w - self.board_w
 
         rl.init_window(self.w, self.h, 'Chess')
@@ -31,7 +32,8 @@ class Chess:
 
 
     def handle_events(self):
-        pass
+        if rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            self.guiboard.handle_mouse_click(rl.get_mouse_position())
 
     def render(self):
         rl.begin_drawing()
@@ -67,6 +69,9 @@ class Chessboard(Display):
 
         self.black_tile_color = (85, 52, 43, 255)
         self.white_tile_color = (209, 175, 132, 255)
+        self.move_color = (144, 238, 144, 255)
+
+        self.legal_moves_highlighted = []
 
         self.board = self.gui_object.board
         self.textures = self.gui_object.textures
@@ -82,11 +87,16 @@ class Chessboard(Display):
     def render(self):
         for y in range(8):
             for x in range(8):
-                y = 7-y
-                if (x+y) % 2 == 0:
-                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h, self.white_tile_color)
+
+                if (x + y) % 2 == 0:
+                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
+                                      self.white_tile_color)
                 else:
-                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h, self.black_tile_color)
+                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
+                                      self.black_tile_color)
+
+                if (x, y) in self.legal_moves_highlighted:
+                    rl.draw_circle(self.x + x * self.tile_w + self.tile_w//2, self.y + y * self.tile_h + self.tile_h//2, self.tile_w//5, self.move_color)
 
 
                 if x == 0:
@@ -105,7 +115,7 @@ class Chessboard(Display):
 
                     rl.draw_text_ex(self.font, f'{chr(x + 97)}', (self.x + x * self.tile_w + self.tile_w * (15/16) - self.font_size//2, self.y + y * self.tile_h + self.tile_h//16 + self.tile_h * (15/16) - self.font_size//1.2), self.font_size,0, color)
 
-                square = chess.square(x, y)
+                square = chess.square(x, 7 - y)
                 piece = self.board.piece_at(square)
                 if piece != None:
                     rl.draw_texture_ex(self.textures[piece.symbol()],
@@ -114,8 +124,26 @@ class Chessboard(Display):
 
 
         super().render()
-    def events(self):
-        pass
+    def handle_mouse_click(self, pos):
+        x = pos.x
+        y = pos.y
+
+        if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
+            square_to_check = chess.square(x//self.tile_w, 7 - y//self.tile_h)
+            legal_moves_check = [move for move in self.board.legal_moves if move.from_square == square_to_check]
+
+
+            if len(legal_moves_check) > 0:
+                self.legal_moves_highlighted = []
+                for m in legal_moves_check:
+                    y = chess.square_rank(m.to_square)
+
+                    x = chess.square_file(m.to_square)
+
+                    self.legal_moves_highlighted.append((x, 7 - y))
+
+
+
 
 
 
