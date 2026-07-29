@@ -72,6 +72,7 @@ class Chessboard(Display):
         self.move_color = (144, 238, 144, 255)
 
         self.legal_moves_highlighted = []
+        self.selected_piece = (None, None)
 
         self.board = self.gui_object.board
         self.textures = self.gui_object.textures
@@ -129,18 +130,38 @@ class Chessboard(Display):
         y = pos.y
 
         if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
-            square_to_check = chess.square(x//self.tile_w, 7 - y//self.tile_h)
-            legal_moves_check = [move for move in self.board.legal_moves if move.from_square == square_to_check]
+            square_to_check = chess.square(int(x//self.tile_w), 7 - int(y//self.tile_h))
 
+            if (int(x // self.tile_w), int(y // self.tile_h)) in self.legal_moves_highlighted:
 
-            if len(legal_moves_check) > 0:
-                self.legal_moves_highlighted = []
-                for m in legal_moves_check:
-                    y = chess.square_rank(m.to_square)
+                square_to_move_from = chess.square(self.selected_piece[0], self.selected_piece[1])
+                legal_moves_finder = [move for move in self.board.legal_moves if
+                                      move.from_square == square_to_move_from]
+                for m in legal_moves_finder:
+                    if 7 - chess.square_rank(m.to_square) == int(y // self.tile_h) and chess.square_file(
+                            m.to_square) == int(x // self.tile_w):
+                        self.board.push(m)
+                        self.selected_piece = (None, None)
+                        self.legal_moves_highlighted = []
+                        break
 
-                    x = chess.square_file(m.to_square)
+            else:
+                if (int(x // self.tile_w), 7 - int(y // self.tile_h)) == self.selected_piece:
 
-                    self.legal_moves_highlighted.append((x, 7 - y))
+                    self.selected_piece = (None, None)
+                    self.legal_moves_highlighted = []
+
+                else:
+                    legal_moves_check = [move for move in self.board.legal_moves if move.from_square == square_to_check]
+                    if len(legal_moves_check) > 0:
+                        self.selected_piece = (x//self.tile_w, 7 - y//self.tile_h)
+                        self.legal_moves_highlighted = []
+                        for m in legal_moves_check:
+                            y = chess.square_rank(m.to_square)
+
+                            x = chess.square_file(m.to_square)
+
+                            self.legal_moves_highlighted.append((x, 7 - y))
 
 
 
