@@ -2,6 +2,7 @@ import chess
 import pyray as rl
 
 import TEXTURES
+from container import DoubleScrollableContainer
 
 class Chess:
     def __init__(self):
@@ -14,31 +15,38 @@ class Chess:
         rl.init_window(self.w, self.h, 'Chess')
         rl.set_target_fps(60)
 
+        self.black_tile_color = (85, 52, 43, 255)
+        self.white_tile_color = (209, 175, 132, 255)
 
         self.board = chess.Board()
 
         self.textures = TEXTURES.load_textures()
 
+        self.font = rl.load_font('assets/fonts/MaidenOrange-Regular.ttf')
+
         self.objects = []
+        self.history = []
 
         self.guiboard = Chessboard(0,0,self.board_w, self.h, self)
-
+        self.move_list =  DoubleScrollableContainer(self, self.board_w, 0,  self.w - self.board_w, self.h)
         self.mainloop()
 
     def mainloop(self):
         while not rl.window_should_close():
-            self.render()
             self.handle_events()
+            self.render()
+
 
 
     def handle_events(self):
         if rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             self.guiboard.handle_mouse_click(rl.get_mouse_position())
 
+        self.move_list.event()
+
     def render(self):
         rl.begin_drawing()
         rl.clear_background(rl.BLACK)
-
         for o in self.objects:
             o.render()
 
@@ -67,8 +75,8 @@ class Chessboard(Display):
     def __init__(self, x, y, w, h, gui_object, bg_color=rl.GRAY):
         Display.__init__(self, x, y, w, h, gui_object, bg_color)
 
-        self.black_tile_color = (85, 52, 43, 255)
-        self.white_tile_color = (209, 175, 132, 255)
+        self.black_tile_color = self.gui_object.black_tile_color
+        self.white_tile_color = self.gui_object.white_tile_color
         self.move_color = (144, 238, 144, 255)
         self.promotion_background = (26,26,26,230)
 
@@ -86,7 +94,7 @@ class Chessboard(Display):
 
         self.scale = self.tile_w/self.textures['P'].width
 
-        self.font = rl.load_font('assets/fonts/MaidenOrange-Regular.ttf')
+        self.font = self.gui_object.font
         self.font_size = self.tile_h // 4
     def render(self):
         for y in range(8):
@@ -98,9 +106,6 @@ class Chessboard(Display):
                 else:
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
                                       self.black_tile_color)
-
-
-
 
                 if x == 0:
                     if y % 2 == 1:
@@ -181,10 +186,7 @@ class Chessboard(Display):
                         for m in legal_moves_finder:
                             if 7 - chess.square_rank(m.to_square) == int(y // self.tile_h) and chess.square_file(
                                     m.to_square) == int(x // self.tile_w):
-                                print(m, self.legal_moves_highlighted)
-                                self.board.push(m)
-                                self.selected_piece = (None, None)
-                                self.legal_moves_highlighted = []
+                                self.push_move(m)
                                 break
 
                 else:
@@ -195,7 +197,6 @@ class Chessboard(Display):
 
                     else:
                         legal_moves_check = [move for move in self.board.legal_moves if move.from_square == square_to_check]
-                        print(legal_moves_check)
                         if len(legal_moves_check) > 0:
                             self.selected_piece = (x//self.tile_w, 7 - y//self.tile_h)
                             self.legal_moves_highlighted = []
@@ -222,14 +223,18 @@ class Chessboard(Display):
                     move = chess.Move(chess.square(int(self.selected_piece[0]), int(self.selected_piece[1])), self.promotion_to_square, promotion=chess.ROOK)
 
                 if move != 0:
-                    self.board.push(move)
-                    self.promotion = False
-                    self.selected_piece = (None, None)
-                    self.legal_moves_highlighted = []
+                    self.push_move(move)
 
 
-
-
+    def push_move(self, move):
+        san = self.board.san(move)
+        self.board.push(move)
+        if self.promotion:
+            self.promotion = False
+        self.selected_piece = (None, None)
+        self.legal_moves_highlighted = []
+        self.gui_object.history.append(san)
+        self.gui_object.move_list.update_moves()
 
 
 
