@@ -1,6 +1,7 @@
 import chess
 import chess.polyglot
 import time
+from PST import PST
 
 class TimeoutException(Exception):
     pass
@@ -34,11 +35,19 @@ class engine:
 
     def evaluate(self):
         eval = 0
+        white_eval = 0
+        black_eval = 0
 
         for piece_type, value in self.pieces.items():
-            white_count = chess.popcount(self.board.pieces_mask(piece_type, chess.WHITE))
-            black_count = chess.popcount(self.board.pieces_mask(piece_type, chess.BLACK))
-            eval += value * (white_count - black_count)
+            table = PST[piece_type]
+
+            for sq in self.board.pieces(piece_type, chess.WHITE):
+                white_eval += value + table[chess.square_mirror(sq)]
+
+            for sq in self.board.pieces(piece_type, chess.BLACK):
+                black_eval += value + table[sq]
+
+        eval = white_eval - black_eval
 
         if self.board.turn == chess.BLACK:
             return -eval

@@ -6,9 +6,11 @@ from container import DoubleScrollableContainer
 from engine import engine
 
 class Chess:
-    def __init__(self):
+    def __init__(self, Player):
         self.w = 800
         self.h = 600
+
+        self.Player = Player
 
         self.board_w = self.h
         self.panel_w = self.w - self.board_w
@@ -31,6 +33,14 @@ class Chess:
 
         self.guiboard = Chessboard(0,0,self.board_w, self.h, self)
         self.move_list =  DoubleScrollableContainer(self, self.board_w, 0,  self.w - self.board_w, self.h)
+
+        self.handle_events()
+        self.render()
+
+        if self.board.turn != self.Player:
+            move = self.engine.get_move()
+            self.board.push(move)
+
         self.mainloop()
 
     def mainloop(self):
@@ -238,7 +248,7 @@ class Chessboard(Display):
         self.gui_object.history.append(san)
         self.gui_object.move_list.update_moves()
 
-        if not self.board.turn:
+        if self.board.turn != self.gui_object.Player:
             move = self.gui_object.engine.get_move()
             self.push_move(move)
 
@@ -272,7 +282,7 @@ class Text:
 
 
 if __name__ == '__main__':
-    c = Chess()
+    c = Chess(False)
 
 
 
