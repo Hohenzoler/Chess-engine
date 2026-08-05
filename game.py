@@ -3,6 +3,7 @@ import pyray as rl
 
 import TEXTURES
 from container import DoubleScrollableContainer
+from engine import engine
 
 class Chess:
     def __init__(self):
@@ -19,6 +20,7 @@ class Chess:
         self.white_tile_color = (209, 175, 132, 255)
 
         self.board = chess.Board()
+        self.engine = engine(self.board)
 
         self.textures = TEXTURES.load_textures()
 
@@ -235,6 +237,10 @@ class Chessboard(Display):
         self.legal_moves_highlighted = []
         self.gui_object.history.append(san)
         self.gui_object.move_list.update_moves()
+
+        if not self.board.turn:
+            move = self.gui_object.engine.get_move()
+            self.push_move(move)
 
 
 
