@@ -4,7 +4,7 @@ import chess.polyglot
 class engine:
     def __init__(self, board):
         self.board = board
-        self.depth = 5
+        self.depth = 6
         self.tt = {} # zobrist_hash
         self.Exact_tt = 0
         self.Upper_tt = 1
@@ -16,27 +16,22 @@ class engine:
 
     def evaluate(self):
         eval = 0
-        if self.board.is_checkmate():
-            if self.board.turn:
-                eval -= self.mate_score
-            else:
-                eval += self.mate_score
-            return eval
-        if self.board.is_stalemate():
-            return 0
 
-        for sq, piece in self.board.piece_map().items():
-            v = self.pieces[piece.piece_type]
-            if piece.color == chess.WHITE:
-                eval += v
-            else:
-                eval -= v
+        for piece_type, value in self.pieces.items():
+            white_count = chess.popcount(self.board.pieces_mask(piece_type, chess.WHITE))
+            black_count = chess.popcount(self.board.pieces_mask(piece_type, chess.BLACK))
+
+            eval += value * (white_count - black_count)
 
 
         return eval
 
 
     def minmax(self, depth, alpha, beta, maximize):
+
+        if depth == 0 or self.board.is_checkmate() or self.board.is_stalemate():
+            return self.evaluate()
+
         # Transpositional Table
 
         original_alpha = alpha
@@ -58,11 +53,6 @@ class engine:
         elif tt_entry is not None:
             tt_move = tt_entry[3]
 
-
-
-
-        if depth == 0 or self.board.is_checkmate() or self.board.is_stalemate():
-            return self.evaluate()
 
         moves = self.order_moves(self.board.legal_moves, tt_move)
 
@@ -112,20 +102,30 @@ class engine:
 
     def order_moves(self, moves, tt_move=None):
         def score(move):
-            if tt_move is not None and move == tt_move:
-                return 1_000_000
+            v = self.board.piece_at(move.to_square)
+            a = self.board.piece_at(move.from_square)
+            v_value = self.pieces[v.piece_type] if v else 100  # in case of en passant
+            a_value = self.pieces[a.piece_type]
+            return 100_000 + v_value * 10 - a_value
 
+        captures = []
+        inactive = []
 
+        for move in moves:
+            if move == tt_move:
+                continue
             if self.board.is_capture(move):
-                v = self.board.piece_at(move.to_square)
-                a = self.board.piece_at(move.from_square)
-                v_value = self.pieces[v.piece_type] if v else 100 # in case of en passant
-                a_value = self.pieces[a.piece_type]
-                return 100_000 +v_value * 10 - a_value
+                captures.append(move)
 
-            return 0
+            else:
+                inactive.append(move)
+        captures.sort(key=score, reverse=True)
+        if tt_move == None:
+            return  captures + inactive
 
-        return sorted(moves, key=score, reverse=True)
+        return [tt_move] + captures + inactive
+
+
 
 
 
