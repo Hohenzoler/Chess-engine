@@ -1,10 +1,15 @@
 import chess
 import chess.polyglot
+import time
+
+class TimeoutException(Exception):
+    pass
+
 
 class engine:
     def __init__(self, board):
         self.board = board
-        self.depth = 4
+        self.depth = 100
         self.tt = {} # zobrist_hash
         self.Exact_tt = 0
         self.Upper_tt = 1
@@ -12,11 +17,19 @@ class engine:
         self.mate_score = 999999999999999
         self.nodes = 0
         self.qnodes = 0
+        self.time_limit = 10.0
+        self.time_start = 0
 
         self.inf = 999999999999999999999999999999
 
 
         self.pieces = {chess.QUEEN: 900, chess.ROOK: 500, chess.BISHOP: 300, chess.KNIGHT: 280, chess.PAWN: 100, chess.KING: 0}
+
+
+    def check_time(self):
+        if (self.nodes+self.qnodes) & 2047 == 0:
+            if time.time() - self.time_start >= self.time_limit:
+                raise TimeoutException()
 
 
     def evaluate(self):
@@ -32,14 +45,13 @@ class engine:
         return eval
 
 
-    def negamax(self, depth, alpha, beta):
+    def negamax(self, depth, alpha, beta, ply=0):
+        self.check_time()
         self.nodes += 1
 
         if depth == 0:
             return self.quiescence(alpha, beta)
-
-
-
+            # return self.evaluate()
 
         # Transpositional Table
 
@@ -66,7 +78,7 @@ class engine:
         moves = list(self.board.legal_moves)
         if not moves:
             if self.board.is_check():
-                return -self.mate_score
+                return -self.mate_score + ply
             return 0
 
         moves = self.order_moves(moves, tt_move)
@@ -75,7 +87,7 @@ class engine:
         best_move = None
         for move in moves:
             self.board.push(move)
-            score = -self.negamax(depth - 1, -beta, -alpha)
+            score = -self.negamax(depth - 1, -beta, -alpha, ply+1)
             self.board.pop()
             if score > best:
                 best = score
@@ -126,6 +138,7 @@ class engine:
         return [tt_move] + captures + inactive
 
     def quiescence(self, alpha, beta):
+        self.check_time()
         self.qnodes += 1
         original_alpha = alpha
         key = self.board._transposition_key()
@@ -207,22 +220,58 @@ class engine:
         return score
 
 
-
-
-
-
     def get_move(self):
-        best_move = None
-        best_score = -self.inf
-        for move in self.order_moves(self.board.legal_moves):
-            self.board.push(move)
-            score = -self.negamax(self.depth - 1, -self.inf, self.inf)
-            self.board.pop()
-            if score > best_score:
-                best_score = score
-                best_move = move
-        print(self.nodes, self.qnodes)
-        return best_move
+        # best_move = None
+        # best_score = -self.inf
+        # for move in self.order_moves(self.board.legal_moves):
+        #     self.board.push(move)
+        #     score = -self.negamax(self.depth - 1, -self.inf, self.inf)
+        #     self.board.pop()
+        #     if score > best_score:
+        #         best_score = score
+        #         best_move = move
+        # print(self.nodes, self.qnodes)
+        # return best_move
+        self.time_start = time.time()
+
+
+        best_overall_move = None
+        best_overall_score = -self.inf
+
+        for depth in range(1, self.depth+1):
+            self.nodes = 0
+            self.qnodes = 0
+
+
+            depth_best_move = None
+            depth_best_score = -self.inf
+            root_key = self.board._transposition_key()
+            tt_move = self.tt.get(root_key, (None, None, None, None))[3]
+            initial_len = len((self.board.move_stack))
+
+            moves = self.order_moves(list(self.board.legal_moves), tt_move)
+
+            try:
+                for move in moves:
+                    self.board.push(move)
+                    score = -self.negamax(depth - 1, -self.inf, self.inf)
+                    self.board.pop()
+
+                    if score > depth_best_score:
+                        depth_best_score = score
+                        depth_best_move = move
+                best_overall_move = depth_best_move
+                best_overall_score = depth_best_score
+                self.tt[root_key] = (depth, depth_best_score, self.Exact_tt, depth_best_move)
+
+                elapsed = time.time() - self.time_start
+                print(f'depth {depth} | score {best_overall_score} | nodes {self.nodes} | qnodes {self.qnodes} | time {elapsed:.2}s | move {best_overall_move}')
+            except:
+                while len(self.board.move_stack) > initial_len:
+                    self.board.pop()
+
+
+        return best_overall_move
 
 
 
