@@ -7,7 +7,7 @@ from engine import engine
 
 class Chess:
     def __init__(self, Player):
-        self.w = 800
+        self.w = 1000
         self.h = 600
 
         self.Player = Player
@@ -39,7 +39,7 @@ class Chess:
 
         if self.board.turn != self.Player:
             move = self.engine.get_move()
-            self.board.push(move)
+            self.guiboard.push_move(move)
 
         self.mainloop()
 
@@ -99,6 +99,11 @@ class Chessboard(Display):
         self.textures = self.gui_object.textures
 
 
+        self.highlighted_sq_1 = (None, None)
+        self.highlighted_sq_2 = (None, None)
+        self.played_color = (57,255,50,255)
+
+
         self.promotion = False
 
         self.tile_w = self.width // 8
@@ -112,12 +117,27 @@ class Chessboard(Display):
         for y in range(8):
             for x in range(8):
 
-                if (x + y) % 2 == 0:
+                if x == self.highlighted_sq_1[0] and y == self.highlighted_sq_1[1]:
+                    print('sq1')
+                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
+                                      self.played_color)
+
+
+                elif x == self.highlighted_sq_2[0] and y == self.highlighted_sq_2[1]:
+                    print('sq2')
+                    rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
+                                      self.played_color)
+
+
+                elif (x + y) % 2 == 0:
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
                                       self.white_tile_color)
                 else:
                     rl.draw_rectangle(self.x + x * self.tile_w, self.y + y * self.tile_h, self.tile_w, self.tile_h,
                                       self.black_tile_color)
+
+
+
 
                 if x == 0:
                     if y % 2 == 1:
@@ -135,14 +155,26 @@ class Chessboard(Display):
 
                     rl.draw_text_ex(self.font, f'{chr(x + 97)}', (self.x + x * self.tile_w + self.tile_w * (15/16) - self.font_size//2, self.y + y * self.tile_h + self.tile_h//16 + self.tile_h * (15/16) - self.font_size//1.2), self.font_size,0, color)
 
+
+
+
                 square = chess.square(x, 7 - y)
                 piece = self.board.piece_at(square)
                 if piece != None:
+                    # print(piece.symbol())
                     rl.draw_texture_ex(self.textures[piece.symbol()],
                                        (self.x + x * self.tile_w, self.y + y * self.tile_h), 0, self.scale, rl.WHITE)
 
                 if (x, y) in self.legal_moves_highlighted:
                     rl.draw_circle(self.x + x * self.tile_w + self.tile_w//2, self.y + y * self.tile_h + self.tile_h//2, self.tile_w//5, self.move_color)
+
+
+
+
+
+
+
+
 
 
         if self.promotion:
@@ -240,6 +272,11 @@ class Chessboard(Display):
 
     def push_move(self, move):
         san = self.board.san(move)
+
+        self.highlighted_sq_1 = (move.to_square%8, 7 - move.to_square//8)
+        self.highlighted_sq_2 = (move.from_square%8, 7 - move.from_square//8)
+
+
         self.board.push(move)
         if self.promotion:
             self.promotion = False
@@ -282,7 +319,7 @@ class Text:
 
 
 if __name__ == '__main__':
-    c = Chess(1)
+    c = Chess(0)
 
 
 
