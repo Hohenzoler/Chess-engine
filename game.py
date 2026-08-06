@@ -282,7 +282,7 @@ class Text:
 
 
 if __name__ == '__main__':
-    c = Chess(False)
+    c = Chess(1)
 
 
 

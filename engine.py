@@ -229,6 +229,31 @@ class engine:
         return score
 
 
+    def get_book_move(self):
+        try:
+            with chess.polyglot.open_reader('openings.bin') as primary_reader:
+                entries = list(primary_reader.find_all(self.board))
+                if entries:
+                    print(f'playing from openings book {entries[0].move}')
+                    return entries[0].move
+        except (FileNotFoundError, IndexError):
+            pass
+
+        try:
+            with chess.polyglot.open_reader('baron30.bin') as primary_reader:
+                entries = list(primary_reader.find_all(self.board))
+                if entries:
+                    print(f'playing from master book {entries[0].move}')
+                    return entries[0].move
+        except (FileNotFoundError, IndexError):
+            pass
+
+        return None
+
+
+
+
+
     def get_move(self):
         # best_move = None
         # best_score = -self.inf
@@ -241,6 +266,11 @@ class engine:
         #         best_move = move
         # print(self.nodes, self.qnodes)
         # return best_move
+        book_move = self.get_book_move()
+        if book_move is not None:
+            return book_move
+
+
         self.time_start = time.time()
 
 
